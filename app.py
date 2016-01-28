@@ -13,6 +13,9 @@ from flask import jsonify # For AJAX transactions
 import json
 import logging
 
+import uuid
+app.secret_key = str(uuid.uuid4())
+
 # Date handling 
 import arrow # Replacement for datetime, based on moment.js
 import datetime # But we still need time
@@ -126,16 +129,32 @@ def format_arrow_time( time ):
     except:
         return "(bad time)"
 
+###################
+#   Error handlers
+###################
+@app.errorhandler(404)
+def error_404(e):
+  app.logger.warning("++ 404 error: {}".format(e))
+  return flask.render_template('404.html'), 404
 
+@app.errorhandler(500)
+def error_500(e):
+   app.logger.warning("++ 500 error: {}".format(e))
+   assert app.debug == False #  I want to invoke the debugger
+   return flask.render_template('500.html'), 500
+
+@app.errorhandler(403)
+def error_403(e):
+  app.logger.warning("++ 403 error: {}".format(e))
+  return flask.render_template('403.html'), 403
 
 #############
 
 
 if __name__ == "__main__":
-    import uuid
-    app.secret_key = str(uuid.uuid4())
     app.debug=CONFIG.DEBUG
     app.logger.setLevel(logging.DEBUG)
-    app.run(port=CONFIG.PORT)
+    print("Opening for global access on port {}".format(CONFIG.PORT))
+    app.run(port=CONFIG.PORT, host="0.0.0.0")
 
     
