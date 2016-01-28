@@ -13,8 +13,6 @@ from flask import jsonify # For AJAX transactions
 import json
 import logging
 
-import uuid
-app.secret_key = str(uuid.uuid4())
 
 # Date handling 
 import arrow # Replacement for datetime, based on moment.js
@@ -38,6 +36,7 @@ import uuid
 app.secret_key = str(uuid.uuid4())
 app.debug=CONFIG.DEBUG
 app.logger.setLevel(logging.DEBUG)
+
 
 
 ###
