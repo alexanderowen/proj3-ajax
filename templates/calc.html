@@ -76,10 +76,10 @@
 <br>
 {% endfor %}
 
-<input id="test" class="classtest form-control" placeholder="hello" readonly></input>
 
 
 <script>
+  // Data picker module/widget. Allows for easy calendar selection.
   $(function() {
     $( "#start_date" ).datepicker();
   });
@@ -88,10 +88,7 @@
 <script type="text/javascript">
   $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
   
-  function updateAll() {
-      //TODO: May not be ideal
-  }
-  
+  // Update a distance tag based on newly entered information
   function update(elem) {
               var e_dist = $(elem).val();
               var start_time = $("#start_time").val(); 
@@ -136,6 +133,7 @@
               update(this);
           }); 
     
+    // If time changed, check if it's valid. If valid, update the 0 distance field. Else, alert user.
     $('#start_time').change(
     	function() {
     		var t = $(this).val();
@@ -152,6 +150,7 @@
     			});    		
     	});
     
+    // If date changed, check if it's valid. If not valid, alert user.
     $('#start_date').change(
     	function() {
     		var d = $(this).val()
