@@ -36,36 +36,32 @@
   <p><input type="text" id="start_time" placeholder="HH:MM"></p>
 <hr>
   <h5>Please select miles or kilometers: </h5>
-  <select>
+  <select id="distance_unit">
     <option value="Kilometers">Kilometers</option>
     <option value="Miles">Miles</option>
   </select>
 <hr>
+	<h5>Please enter a brevet length (in kilometers): </h5>
+	<select id="brevet_length">
+	  <option value="200">200</option>
+	  <option value="300">300</option>
+	  <option value="400">400</option>
+	  <option value="600">600</option>
+	  <option value="1000">1000</option>
+	</select>
+<hr>
 
-  <!--
-   If there are any warnings or other messages from a prior
-   request to the server, 
-   they appear above the rest of the content, just until the next 
-   action.  (This is only on request/response transactions that
-   result in regenerating the page, not on every xmlhttp request.) 
-  -->
-
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
 
 <!-- Design on bootstrap grid -->
 <form role="form">
-
+{% for i in range(10) %}
 <div class="row">
   <div class="col-md-2">
+  	{% if loop.first %}
+    <input type="number" step="10" class="form-control" id="start_distance" value="0" readonly>
+    {% else %}
     <input type="number" step="10" class="form-control" name="distance" placeholder="Distance">
+    {% endif %}
   </div>
   
   <div class="col-md-4">
@@ -73,42 +69,14 @@
   </div>
   
   <div class="col-md-4">
-    <span class="open-time form-control">1500  1600</span>
-    <span class="close-time form-control">1500  1600</span>
+    <input class="open-time form-control times" placeholder="Open Time" readonly disabled></input>
+    <input class="close-time form-control times" placeholder="Close Time" readonly disabled></input>
   </div>
 </div>
+<br>
+{% endfor %}
 
-<div class="row">
-  <div class="col-md-2">
-    <input type="number" step="10" class="form-control" name="distance" placeholder="Distance">
-  </div>
-  
-  <div class="col-md-4">
-    <input type="text" class="form-control" name="location" placeholder="Location">
-  </div>
-  
-  <div class="col-md-4">
-    <span class="times form-control"></span>
-    <span class="times form-control"></span>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-md-2">
-    <input type="number" step="10" class="form-control" name="distance" placeholder="Distance">
-  </div>
-  
-  <div class="col-md-4">
-    <input type="text" class="form-control" name="location" placeholder="Location">
-  </div>
-  
-  <div class="col-md-4">
-    <span class="times form-control"></span>
-    <span class="times form-control"></span>
-  </div>
-</div>
-</form>
-
+<input id="test" class="classtest form-control" placeholder="hello" readonly></input>
 
 
 <script>
@@ -119,31 +87,84 @@
 
 <script type="text/javascript">
   $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-
-  $(document).ready(function(){
-    $('input[name="distance"]').change(
-          function(){
-              var e_dist = $(this).val();
+  
+  function updateAll() {
+      //TODO: May not be ideal
+  }
+  
+  function update(elem) {
+              var e_dist = $(elem).val();
               var start_time = $("#start_time").val(); 
               var start_date = $("#start_date").val();
+              var distance_unit = $("#distance_unit").val();
+              var brevet_length = $("#brevet_length").val();
 
-              var target = $(this).parents(".row").find(".open-time");
-
-              // DEBUG: How do I replace the 'times' field?
-              // alert("Content of the field I want to change: " +
-              //   target.html());
+              var open_target = $(elem).parents(".row").find(".open-time");
+              var close_target = $(elem).parents(".row").find(".close-time");
 
               $.getJSON($SCRIPT_ROOT + '/_calc_times',
                   { dist: e_dist ,
                     start_t: start_time ,
-                    start_d: start_date },
+                    start_d: start_date ,
+                    dist_unit: distance_unit,
+                    brev_length: brevet_length},
                   function(data) {
                      var opening = data.result.opening;
                      var closing = data.result.closing;
-                     // alert("Got a response: " +  times);
-                     target.text(opening + " " + closing);
-              }); 
-    }); 
+                     open_target.val(opening);
+                     close_target.val(closing);
+              });
+  }
+
+  $(document).ready(function(){
+    $('input[name="distance"]').change(
+          function(){          	  
+              var e_dist = $(this).val();
+              var brevet_length = $("#brevet_length").val();
+              
+              // Check if distance too large (> 20%)
+              var t_brevet_length = brevet_length
+              if (distance_unit == "Miles") {
+                  t_brevet_length = t_brevet_length * 0.61;
+              }
+              if (e_dist > parseInt(t_brevet_length) + (t_brevet_length * .2)) {
+                  $(this).val("");
+                  alert("Invalid distance: Distance is larger than 20% of brevet length.");
+                  return;
+              }
+              
+              update(this);
+          }); 
+    
+    $('#start_time').change(
+    	function() {
+    		var t = $(this).val();
+    		$.getJSON($SCRIPT_ROOT + '/_is_valid_time',
+    			{ time : t},
+    			function(data) {
+    				var is_valid = data.result.is_valid;
+    				if (!is_valid) {
+    					alert("Invalid time. Format is HH:mm")
+    					$("#start_time").val("")
+    				} else {
+    					update('#start_distance');
+    				}
+    			});    		
+    	});
+    
+    $('#start_date').change(
+    	function() {
+    		var d = $(this).val()
+    		$.getJSON($SCRIPT_ROOT + '/_is_valid_date',
+    			{ date : d },
+    			function(data) {
+    				var is_valid = data.result.is_valid;
+    				if (!is_valid) {    					
+    					alert("Invalid date. Format is MM/DD/YYYY");
+    					$("#start_date").val("")
+    				}
+    			});    
+    	});    
   });   
 
 </script>

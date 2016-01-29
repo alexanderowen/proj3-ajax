@@ -23,8 +23,7 @@ from dateutil import tz  # For interpreting local times
 import os
 
 # Our own module
-# import acp_limits
-
+import acp_calc
 
 ###
 # Globals
@@ -37,8 +36,6 @@ app.secret_key = str(uuid.uuid4())
 app.debug=CONFIG.DEBUG
 app.logger.setLevel(logging.DEBUG)
 
-
-
 ###
 # Pages
 ###
@@ -49,13 +46,6 @@ app.logger.setLevel(logging.DEBUG)
 def index():
   app.logger.debug("Main page entry")
   return flask.render_template('calc.html')
-
-
-@app.errorhandler(404)
-def page_not_found(error):
-    app.logger.debug("Page not found")
-    flask.session['linkback'] =  flask.url_for("calc")
-    return flask.render_template('page_not_found.html'), 404
 
 @app.route('/favicon.ico')
 def favicon():
@@ -75,37 +65,57 @@ def calc_times():
   described at http://www.rusa.org/octime_alg.html.
   Expects one URL-encoded argument, the number of kilometers. 
   """
-  #controls is of the form (control loc in km, minimum speed, maximum speed)
-  controls = [(200,15,34), (400,15,32), (600,15,30), (1000,11.428,28)] 
   dist = request.args.get('dist', 0, type=int)
+  dist_unit = request.args.get('dist_unit', 0, type=str)
   start_t = request.args.get('start_t', 0, type=str)
   start_d = request.args.get('start_d', 0, type=str)
+  brev_length = request.args.get('brev_length', 0, type=int)  
   
-  rslt = {"opening" : "", "closing" : ""}
+  time_str = "{} {}".format(start_d, start_t)
+  time = arrow.get(time_str, "MM/DD/YYYY HH:mm")
   
+  opening, closing = acp_calc.acp_times(brev_length, dist, dist_unit, time)
   
-  for control in controls:
-    km, min, max = control
-    if dist <= km:
-      time_str = "{} {}".format(start_d, start_t)
-      time = arrow.get(time_str, "MM/DD/YYYY HH:mm")
-      break
-      
-  h_min = int(dist/min)
-  m_min = round(60 * (dist/min - h_min))  
-  closing = time.replace(hours=+h_min, minutes=+m_min)
-  closing = str(closing.time())
+  # Date formatting
+  ctime = str(closing.time())[:5]
+  cmonth = str(closing.date())[5:7]
+  cdate = str(closing.date())[8:]
+  closing = "{}/{}    {}".format(cmonth, cdate, ctime)
   
-  h_max = int(dist/max)
-  m_max = round(60 * (dist/max - h_max))  
-  opening = time.replace(hours=+h_max, minutes=+m_max)
-  opening = str(opening.time())
+  otime = str(opening.time())[:5]
+  omonth = str(opening.date())[5:7]
+  odate = str(opening.date())[8:]
+  opening = "{}/{}    {}".format(omonth, odate, otime)
   
-  rslt["closing"] = closing
-  rslt["opening"] = opening
-  
+  rslt = {"opening": opening, "closing": closing}  
   return jsonify(result=rslt)
  
+
+@app.route("/_is_valid_date")
+def is_valid_date():
+	"""
+	Determines if a given date is valid. Format required: MM/DD/YYYY
+	"""
+	date_str = request.args.get('date', 0, type=str)
+	try:
+		arrow.get(date_str, "MM/DD/YYYY")
+	except:
+		return jsonify(result={"is_valid": False})
+	return jsonify(result={"is_valid": True})
+
+	
+@app.route("/_is_valid_time")
+def is_valid_time():
+	"""
+	Determines if a given time is valid. Format required: MM:mm
+	"""
+	time_str = request.args.get('time', 0, type=str)
+	try:
+		arrow.get(time_str, "HH:mm")
+	except:
+		return jsonify(result={"is_valid": False})
+	return jsonify(result={"is_valid": True})
+ 	
 #################
 #
 # Functions used within the templates
@@ -132,20 +142,21 @@ def format_arrow_time( time ):
 #   Error handlers
 ###################
 @app.errorhandler(404)
-def error_404(e):
-  app.logger.warning("++ 404 error: {}".format(e))
-  return flask.render_template('404.html'), 404
+def page_not_found(error):
+    app.logger.debug("Page not found")
+    flask.session['linkback'] =  flask.url_for("calc")
+    return render_template('page_not_found.html'), 404
 
 @app.errorhandler(500)
 def error_500(e):
    app.logger.warning("++ 500 error: {}".format(e))
    assert app.debug == False #  I want to invoke the debugger
-   return flask.render_template('500.html'), 500
+   return render_template('500.html'), 500
 
 @app.errorhandler(403)
 def error_403(e):
   app.logger.warning("++ 403 error: {}".format(e))
-  return flask.render_template('403.html'), 403
+  return render_template('403.html'), 403
 
 #############
 
@@ -159,6 +170,5 @@ else:
     # Running from cgi-bin or from gunicorn WSGI server, 
     # which makes the call to app.run.  Gunicorn may invoke more than
     # one instance for concurrent service.
-    #FIXME:  Debug cgi interface 
     app.debug=False
     
