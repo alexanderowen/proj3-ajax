@@ -1,22 +1,33 @@
-# proj3-ajax
-Reimplement the RUSA ACP controle time calculator with flask and ajax
+# proj3-ajax  (or proj4)
 
-## ACP controle times
+Name: Alexander Owen  
+URL: http://ix.cs.uoregon.edu/~aowen/htbin/cis399/proj3-ajax/  
+http://ix.cs.uoregon.edu:6938    
 
-That's "controle" with an 'e', because it's French, although "control" is also accepted.  Controls are points where 
-a rider must obtain proof of passage, and control[e] times are the minimum and maximum times by which the rider must
-arrive at the location.  
+RUSA ACP Brevet Time Calculator  
+Gives the open and closing times based on brevet length and time. Follows the ACP brevet algorithm described at: http://www.rusa.org/octime_alg.html    
 
-The algorithm for calculating controle times is described at http://www.rusa.org/octime_alg.html . The description is ambiguous, but the examples help.  Part of finishing this project is clarifying anything that is not clear about the requirements, and documenting it clearly. 
+## Algorithm  
+Determining the open and closing time of a control on a brevet follows either one of two special cases or 1 general case.    
 
-We are essentially replacing the calculator at http://www.rusa.org/octime_acp.html .  We can also use that calculator to clarify requirements.  
+Special case:  
+1) If the control is zero, then the open time is the start time, and the closing time is the start time plus 1 hour. 
+2) If the control distance is greater than or equal to the brevet length, the open time is treated as though it were the brevet length and the general
+ACP algorithm is performed. The close time follows the maximum time for a brevet, following Article 9 found here: http://www.rusa.org/brvreg.html  
+Notice that if the control1 and control2 are both greater than the brevet length, then the open and closing times for both will be the same.    
 
-## AJAX and Flask reimplementation
+General case:
+For most cases, the control location follows the ACP brevet algorithm described at: http://www.rusa.org/octime_alg.html  
+When determining the duration of a control location, the table is helpful, but misleading.  
+For a 150km location on a 200km brevet, opening is 150/34, closing is 150/15.  
+However, for a 350km location on a 600km, opening is 200/34 + 150/32, closing is 200/15 + 150/15.  
+Put simply, the time allotted for a given control location is accumulated with several calculations, not simply one calculation.    
 
-The current RUSA controle time calculator is a Perl script that takes an HTML form and emits a text page. The reimplementation will fill in times as the input fields are filled.  Each time a distance is filled in, the corresponding open and close times should be filled in.   If no begin time has been provided, use 0:00 as the begin time. 
+## Small note on the features implemented  
+- A calendar widget is used for easy date selection  
+- Dates and times are checked for validity upon submission    
 
-I will leave much of the design to you.  
+## Possible future features  
+- Clear button to clear all fields  
+- Update all fields when date, time, or distance units changed
 
-## Testing
-
-A requirement of this project will be designing a systematic test suite. 
