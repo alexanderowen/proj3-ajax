@@ -16,7 +16,7 @@ Special case:
 ACP algorithm is performed. The close time follows the maximum time for a brevet, following Article 9 found here: http://www.rusa.org/brvreg.html  
 Notice that if the control1 and control2 are both greater than the brevet length, then the open and closing times for both will be the same.    
 
-General case:
+General case:  
 For most cases, the control location follows the ACP brevet algorithm described at: http://www.rusa.org/octime_alg.html  
 When determining the duration of a control location, the table is helpful, but misleading.  
 For a 150km location on a 200km brevet, opening is 150/34, closing is 150/15.  
